@@ -1,0 +1,96 @@
+
+//+------------------------------------------------------------------+
+//|                                               Iai.mq5             |
+//|                      Copyright 2021, Forex Robot Easy Team         |
+//|                                   https://www.forexroboteasy.com   |
+//+------------------------------------------------------------------+
+#property copyright 'Copyright 2021, Forex Robot Easy Team'
+#property link      'https://www.forexroboteasy.com'
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Initialization code here
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization function                                 |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    // Deinitialization code here
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    // Tick processing code here
+
+    // Identify entry points based on Bollinger Bands deviation
+    double deviation = iStdDev(NULL, 0, 20, 0, MODE_SMA, PRICE_CLOSE, 0);
+    double upperBand = iBands(NULL, 0, 20, 2, 0, PRICE_CLOSE, MODE_UPPER, 0);
+    double lowerBand = iBands(NULL, 0, 20, 2, 0, PRICE_CLOSE, MODE_LOWER, 0);
+    double price = SymbolInfoDouble(Symbol(), SYMBOL_BID);
+    
+    if (price > upperBand + 3 * deviation)
+    {
+        // Execute buy trade
+        OrderSend(Symbol(), OP_BUY, 0.01, price, 3, 0, 0, 'IAI Forex Software');
+    }
+    else if (price < lowerBand - 3 * deviation)
+    {
+        // Execute sell trade
+        OrderSend(Symbol(), OP_SELL, 0.01, price, 3, 0, 0, 'IAI Forex Software');
+    }
+
+    // Monitor and adjust trades to maximize profitability
+    for (int i = OrdersTotal() - 1; i >= 0; i--)
+    {
+        if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            if (OrderSymbol() == Symbol() && OrderMagicNumber() == 3)
+            {
+                // Close trades if they have reached a certain profit target
+                double profit = OrderProfit();
+                if (profit > 10)
+                {
+                    OrderClose(OrderTicket(), OrderLots(), OrderClosePrice(), 0, clrGreen);
+                }
+                
+                // Adjust stop loss and take profit levels based on market conditions
+                double stopLoss = NormalizeDouble(OrderOpenPrice() - 0.0010, SymbolInfoInteger(Symbol(), SYMBOL_DIGITS));
+                double takeProfit = NormalizeDouble(OrderOpenPrice() + 0.0020, SymbolInfoInteger(Symbol(), SYMBOL_DIGITS));
+                
+                if (OrderType() == OP_BUY)
+                {
+                    if (OrderStopLoss() != stopLoss)
+                    {
+                        OrderModify(OrderTicket(), OrderOpenPrice(), stopLoss, takeProfit, 0, clrNone);
+                    }
+                }
+                else if (OrderType() == OP_SELL)
+                {
+                    if (OrderStopLoss() != stopLoss)
+                    {
+                        OrderModify(OrderTicket(), OrderOpenPrice(), stopLoss, takeProfit, 0, clrNone);
+                    }
+                }
+            }
+        }
+    }
+}
+
+//+------------------------------------------------------------------+
+//| Expert start function                                            |
+//+------------------------------------------------------------------+
+void OnStart()
+{
+    // Start processing code here
+}
+
